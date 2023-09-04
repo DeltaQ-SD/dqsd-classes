@@ -8,6 +8,7 @@
 
 module DeltaQ.Class
   ( ImproperRandomVariable(..)
+  , Convolvable(..)
   , NonConcurrentCombination(..)
   , ConcurrentCombination(..)
   ) where
@@ -37,15 +38,6 @@ class ImproperRandomVariable a where
   intangibleMass :: a -> ProbabilityModel a
   default intangibleMass :: (Num (ProbabilityModel a)) => a -> ProbabilityModel a
   intangibleMass x = 1 - tangibleMass x
-  
-  fromQTAs :: [(a, a)] -> ProbabilityModel a
-  fromQTAs = undefined
-  
-  simplify :: a -> a
-  simplify = id
-  
-  (===) :: Eq a => a -> a -> Bool
-  a === b = simplify a == simplify b
 
   -- ? making an improper random variable 'proper'
 
@@ -53,15 +45,19 @@ class ImproperRandomVariable a where
 
   -- ? means of extracting lower order moments (mean, variance ..)
 
+-- | Wrapper for convolution (since it doesn't need the weight type param)
+class Convolvable a where
+  {-# MINIMAL ((<+>) | convolve) #-}
+  (<+>) :: a -> a -> a
+  (<+>) = convolve
+
+  convolve :: a -> a -> a
+  convolve = (<+>)
 
 -- | Combinations of Improper Random Variables that occur either sequentially or
 --   in a mutally exclusive fashion. Single use of a computatonal capability.
-class NonConcurrentCombination w a where
-  --type Weight a
-
-  {-# MINIMAL convolve, (weightedChoice | probabilisticChoice | weightedChoice') #-}
-
-  convolve :: a -> a -> a
+class Convolvable a => NonConcurrentCombination w a where
+  {-# MINIMAL (weightedChoice | probabilisticChoice | weightedChoice') #-}
 
   weightedChoice :: (ImproperRandomVariable a) => (w, a) -> (w, a) -> a
   default weightedChoice :: (Num w, Fractional w, ImproperRandomVariable a)
@@ -73,11 +69,13 @@ class NonConcurrentCombination w a where
   weightedChoice' :: (ImproperRandomVariable a) => [(w, a)] -> a
   default weightedChoice' :: (Num w, Fractional w, ImproperRandomVariable a)
                           => [(w, a)] -> a
-  weightedChoice' = foldl undefined perfection -- TBW
+  weightedChoice' [] = perfection
+  weightedChoice' (x:xs) = weightedChoice x (ws, weightedChoice' xs)
+    where ws = sum $ map fst xs
 
   probabilisticChoice :: (ImproperRandomVariable a) => w -> a -> a -> a
   default probabilisticChoice :: (Num w, ImproperRandomVariable a) => w -> a -> a -> a
-  probabilisticChoice n a b = weightedChoice (n, a) (1 - n, b)
+  probabilisticChoice n a b = weightedChoice' [(n, a), (1 - n, b)]
 
 
 -- | Combination of Improper Random Variables that occur concurrent with
