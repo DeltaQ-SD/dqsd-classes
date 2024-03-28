@@ -20,7 +20,7 @@ name:               dqsd-classes
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.1.0.0
+version:            0.2.0.0
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -35,10 +35,10 @@ license:            BSD-3-Clause
 license-file:       LICENSE
 
 -- The package author(s).
-author:             jacobjwalters
+author:             Neil Davies
 
 -- An email address to which users can send suggestions, bug reports, and patches.
-maintainer:         prog@jacobwalte.rs
+maintainer:         neil.davies@pnsol.ccom
 
 -- A copyright notice.
 -- copyright:
@@ -58,7 +58,7 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  DeltaQ.Class
+    exposed-modules:  DeltaQ.Model.DeltaQ
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -75,12 +75,12 @@ library
     -- Base language which the package is written in.
     default-language: Haskell2010
 
-test-suite dqsd-classes-test
-    -- Import common warning flags.
-    import:           warnings
+-- test-suite dqsd-classes-test
+--     -- Import common warning flags.
+--     import:           warnings
 
-    -- Base language which the package is written in.
-    default-language: Haskell2010
+--     -- Base language which the package is written in.
+--     default-language: Haskell2010
 
     -- Modules included in this executable, other than Main.
     -- other-modules:
@@ -89,15 +89,15 @@ test-suite dqsd-classes-test
     -- other-extensions:
 
     -- The interface type and version of the test suite.
-    type:             exitcode-stdio-1.0
+    -- type:             exitcode-stdio-1.0
 
-    -- Directories containing source files.
-    hs-source-dirs:   test
+    -- -- Directories containing source files.
+    -- hs-source-dirs:   test
 
-    -- The entrypoint to the test suite.
-    main-is:          Main.hs
+    -- -- The entrypoint to the test suite.
+    -- main-is:          Main.hs
 
-    -- Test dependencies.
-    build-depends:
-        base,
-        dqsd-classes
+    -- -- Test dependencies.
+    -- build-depends:
+    --     base,
+    --     dqsd-classes
