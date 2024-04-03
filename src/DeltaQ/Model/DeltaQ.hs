@@ -3,11 +3,22 @@
 {-# LANGUAGE TypeFamilies      #-}
 
 module DeltaQ.Model.DeltaQ
+  ( ProbabilityMass (..)
+  , DeltaQ (..)
+  , DeltaQOps (..)
+  , DeltaQ𝛩 (..)
+  , DeltaQTimeout (..)
+  , DeltaQUniform (..)
+  , shiftedHeaviside
+  )
 where
 
+-- | Probability mass. This is a value that can range over the unit interval,
+--   [0,1].
+
+
 class ( Fractional (ProbMassModel a)
-      , Real (ProbMassModel a)
-      , Num a
+      , Ord (ProbMassModel a)
       )
       => ProbabilityMass a where
   data  ProbMassModel a
@@ -19,10 +30,11 @@ class ( Fractional (ProbMassModel a)
 
   never        = fromMassModel 0
   always       = fromMassModel 1
-  complement a = (always - a)
+  complement a = fromMassModel (toMassModel always - toMassModel a)
 
-
-class (ProbabilityMass (ProbMass icdf)) => DeltaQ icdf where
+class ( ProbabilityMass (ProbMass icdf)
+      , Num (Time icdf) 
+      ) => DeltaQ icdf where
   type ProbMass icdf
   type Time     icdf
 
@@ -49,7 +61,7 @@ class (ProbabilityMass (ProbMass icdf)) => DeltaQ icdf where
   tangibleMass :: icdf -> ProbMass icdf
 
   -- | The time at which the request probability mass has accumulated.
-  centiles :: icdf -> [ProbMass icdf] -> [Maybe (Time icdf)]
+  centile :: icdf -> ProbMass icdf -> Maybe (Time icdf)
 
   default cumulativeMass :: Ord (Time icdf)
                          => icdf -> Time icdf -> ProbMass icdf
@@ -110,10 +122,13 @@ class (DeltaQ icdf) => DeltaQOps icdf where
       pl = toMassModel p
       pr = 1 - pl
 
-  nWayChoice cs = undefined
+  nWayChoice [] = bottom
+  nWayChoice [(_,a)] = a
+  nWayChoice ((w_x,dq_x):xs) =
+    choice (fromMassModel $ w_x / (w_x + sumW xs)) dq_x (nWayChoice xs)
     where
-      _s = sum (map fst cs)
-      _n = undefined
+     sumW = sum . map fst
+
 
   convolve a b = nWayConvolve [a, b]
 
@@ -153,9 +168,14 @@ shiftedHeaviside :: (DeltaQ𝛩 icdf) => Time icdf -> icdf
 shiftedHeaviside = shifted𝛩
 
 -- | Those models that support construction through use of uniform distributions
-class (DeltaQ icdf)=> DeltaQUniform icdf where
+class (DeltaQ𝛩 icdf) => DeltaQUniform icdf where
+-- | Uniform distribution from 0
   uniform0 :: Time icdf -> icdf
+-- | Uniform distribution over a range
   uniform  :: Time icdf -> Time icdf -> icdf
+
+  uniform0  b = uniform 0 b
+  uniform a b = delay (uniform0 $ b - a) a
 
 class (DeltaQ𝛩 icdf) => DeltaQTimeout icdf where
   -- | Ensure progress at no later than the specified timeout. This can
@@ -164,30 +184,3 @@ class (DeltaQ𝛩 icdf) => DeltaQTimeout icdf where
   timeout :: icdf -> Time icdf -> icdf
 
   timeout icdf to = icdf `ftf` shifted𝛩 to
-
-
--- | Ability to extract internal detail of aspects of the expressions.
-class (DeltaQOps icdf) => DeltaQIntrospection icdf where
-  -- | Extract the probability that the timeout was invoked.
-  probTimedout :: icdf -> Time icdf -> ProbMass icdf
-  -- | Extract the 'slack' (or 'hazard') for a single (time, probability) point -
-  --   the degenerative QTA (Quantitative Timeliness Agreement)
-  pointSlackHazard :: icdf -> (Time icdf, ProbMass icdf)
-                   -> Either (Time icdf, ProbMass icdf) (Time icdf, ProbMass icdf)
-
--- here? Things that might inform a scheduler, for example
-
-  probTimedout icdf to = complement $ cumulativeMass icdf to
-
-  pointSlackHazard = undefined
-
-class (DeltaQ icdf) => DeltaQSupport icdf where
-  type InvProbMass icdf
-
-  fromQTA :: [(Time icdf, ProbMass icdf)] -> icdf
-
-  inverseCummulativeMass :: icdf -> Time icdf -> InvProbMass icdf
-
-  toDensity :: icdf -> Time icdf -> {- ProbabilityMass -} icdf
-
-  -- views for plotting
