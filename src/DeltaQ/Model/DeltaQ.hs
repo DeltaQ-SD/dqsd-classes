@@ -2,13 +2,32 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
 
+{-|
+Module      : DeltaQ
+Description : Class descriptions for the ∆Q systems development approach.
+Copyright   : Neil Davies, 2024
+License     : BSD-3
+Maintainer  : neil.davies@pnsol.com
+-}
+
+
 module DeltaQ.Model.DeltaQ
-  ( ProbabilityMass (..)
+  (
+    -- * Improper random distribution
+    -- ** ProbabilityMass
+    ProbabilityMass (..)
+    -- ** ∆Q
   , DeltaQ (..)
+    -- * `DeltaQ` operations
+    -- ** choice, serial / concurrent composition
   , DeltaQOps (..)
+    -- ** Time-shifting
   , DeltaQ𝛩 (..)
+    -- ** Timeout
   , DeltaQTimeout (..)
+    -- * Useful distributions
   , DeltaQUniform (..)
+    -- * Utility functions
   , shiftedHeaviside
   )
 where
@@ -16,50 +35,50 @@ where
 -- | Probability mass. This is a value that can range over the unit interval,
 --   [0,1].
 
-
 class ( Fractional (ProbMassModel a)
       , Ord (ProbMassModel a)
       )
       => ProbabilityMass a where
   data  ProbMassModel a
   never         :: a
+  -- ^ No possibility, 0% probability mass
   always        :: a
+  -- ^ Certainty, 100% probability mass
   complement    :: a -> a
+  -- ^ difference from always
   toMassModel   :: a -> ProbMassModel a
+  -- ^ projection to underlying probability mass model
   fromMassModel :: ProbMassModel a -> a
+  -- ^ projection from underlying probability mass model
 
   never        = fromMassModel 0
   always       = fromMassModel 1
   complement a = fromMassModel (toMassModel always - toMassModel a)
 
+-- | ∆Q - a relationship between timeliness and probability that admits the
+--   notion of non-occurrence.
 class ( ProbabilityMass (ProbMass icdf)
       , Num (Time icdf) 
       ) => DeltaQ icdf where
   type ProbMass icdf
   type Time     icdf
 
-  -- | Perfection - instantaneous 100% 'success'.
+  -- | Perfection - instantaneous 100% __success__.
   perfection :: icdf
-
-  -- | Bottom - never occurs, 100% 'failure'.
+  -- | Bottom - never occurs, 100% __failure__.
   bottom :: icdf
-
-  -- | cumulative probability mass - the probability that 'success' will have
+  -- | cumulative probability mass - the probability that /success/ will have
   --   occurred at or before the given time.
   cumulativeMass :: icdf -> Time icdf -> ProbMass icdf
-
   -- | As above, but only defined over the support.
   cumulativeMass' :: icdf -> Time icdf -> Maybe (ProbMass icdf)
-
   -- | The support. The values of time before (and after) which the cumulative
   --   distribution does not change. The upper bound is present if the support
   --   has a finite upper bound.
   support :: icdf -> (Time icdf, Maybe (Time icdf))
-
   -- | The limit of the cumulative probability at and beyond the upper bound of
   --   support.
   tangibleMass :: icdf -> ProbMass icdf
-
   -- | The time at which the request probability mass has accumulated.
   centile :: icdf -> ProbMass icdf -> Maybe (Time icdf)
 
@@ -73,12 +92,11 @@ class ( ProbabilityMass (ProbMass icdf)
       (l,u) = support icdf
       err1  = error "cumulativeMass: DeltaQ model error - not defined over support"
 
-  -- | All these operators are transitive, we offer up the ability to create a
-  --   multi-way version of the functions to permit exploitation of
-  --   optimisations.
-  --
-  --   Care is taken in the default multi-way case to ensure that the empty list
-  --   returns the `unit` of the operator.
+-- | All these operators are transitive, we offer up the ability to create a
+--   multi-way version of the functions to permit exploitation of optimisations.
+--
+--   Care is taken in the default multi-way case to ensure that the empty list
+--   returns the unit of the operator.
 
 class (DeltaQ icdf) => DeltaQOps icdf where
 
@@ -152,6 +170,7 @@ class (DeltaQ icdf) => DeltaQOps icdf where
   nWayLtf [] = perfection
   nWayLtf ps = foldr1 ltf ps
 
+-- | Time shifting ∆Q
 
 class (DeltaQOps icdf) => DeltaQ𝛩 icdf where
   -- | introduce a fixed additional delay
@@ -177,6 +196,8 @@ class (DeltaQ𝛩 icdf) => DeltaQUniform icdf where
   uniform0  b = uniform 0 b
   uniform a b = delay (uniform0 $ b - a) a
 
+
+-- | Specialised version of first to finish for timeoutl
 class (DeltaQ𝛩 icdf) => DeltaQTimeout icdf where
   -- | Ensure progress at no later than the specified timeout. This can
   --   _increase_ `tangibleMass` as it will be `always` for times greater than

@@ -17,15 +17,16 @@ import DeltaQ.Model.DeltaQ ( ProbabilityMass (..)
 --  achieved a measure of the degree of it being missed.
 data (DeltaQ icdf) => Slazard icdf
   = Slack (Time icdf) (ProbMass icdf)
-  -- ^ the 'slack' time / probability mass
+  -- ^ the __slack__. Expressed in terms of both time and probability mass
   | Hazard (Maybe (Time icdf)) (ProbMass icdf)
-  -- ^ the 'hazard' time / probability mass
+  -- ^ the __hazard__. Expressed in terms of probability mass and, if waiting
+  --   would have worked, time.
 
 -- | Ability to extract internal detail of aspects of the expressions.
 class (DeltaQ icdf) => DeltaQIntrospection icdf where
   -- | Extract the probability that the timeout would occur.
   probTimedout :: icdf -> Time icdf -> ProbMass icdf
-  -- | Extract the 'slack' (or 'hazard') for a single (time, probability) point
+  -- | Extract the /slack/ (or /hazard/) for a single (time, probability) point
   --   - the degenerative QTA (Quantitative Timeliness Agreement)
   pointSlackHazard :: icdf
                    -> (Time icdf, ProbMass icdf)
