@@ -39,7 +39,7 @@ class ( Fractional (ProbMassModel a)
       , Ord (ProbMassModel a)
       )
       => ProbabilityMass a where
-  data  ProbMassModel a
+  type  ProbMassModel a
   never         :: a
   -- ^ No possibility, 0% probability mass
   always        :: a
@@ -53,7 +53,7 @@ class ( Fractional (ProbMassModel a)
 
   never        = fromMassModel 0
   always       = fromMassModel 1
-  complement a = fromMassModel (toMassModel always - toMassModel a)
+--  complement a = fromMassModel (toMassModel always - toMassModel a)
 
 -- | ∆Q - a relationship between timeliness and probability that admits the
 --   notion of non-occurrence.
@@ -82,6 +82,10 @@ class ( ProbabilityMass (ProbMass icdf)
   -- | The time at which the request probability mass has accumulated.
   centile :: icdf -> ProbMass icdf -> Maybe (Time icdf)
 
+  centiles :: icdf -> [ProbMass icdf] -> [Maybe (Time icdf)]
+
+  {-# MINIMAL perfection, bottom, (cumulativeMass | cumulativeMass'), support,  tangibleMass, (centile | centiles) #-}
+
   default cumulativeMass :: Ord (Time icdf)
                          => icdf -> Time icdf -> ProbMass icdf
   cumulativeMass icdf t
@@ -91,6 +95,22 @@ class ( ProbabilityMass (ProbMass icdf)
     where
       (l,u) = support icdf
       err1  = error "cumulativeMass: DeltaQ model error - not defined over support"
+
+  default cumulativeMass' :: Ord (Time icdf)
+                          => icdf -> Time icdf -> Maybe (ProbMass icdf)
+
+  cumulativeMass' icdf t
+    | t < l                 = Just $ never
+    | maybe False (t >) u   = Nothing
+    | otherwise             = Just $ cumulativeMass icdf t
+    where
+      (l,u) = support icdf
+
+  centile icdf p = head $ centiles icdf [p]
+
+  centiles icdf ps = map (centile icdf) ps
+
+
 
 -- | All these operators are transitive, we offer up the ability to create a
 --   multi-way version of the functions to permit exploitation of optimisations.
@@ -182,6 +202,9 @@ class (DeltaQOps icdf) => DeltaQ𝛩 icdf where
   delay  a t = a `convolve` shifted𝛩 t
   shifted𝛩 t = delay perfection t
 
+  {-# MINIMAL (shifted𝛩 | delay) #-}
+
+
 -- | A synonym for `shifted𝛩`.
 shiftedHeaviside :: (DeltaQ𝛩 icdf) => Time icdf -> icdf
 shiftedHeaviside = shifted𝛩
@@ -196,8 +219,10 @@ class (DeltaQ𝛩 icdf) => DeltaQUniform icdf where
   uniform0  b = uniform 0 b
   uniform a b = delay (uniform0 $ b - a) a
 
+  {-# MINIMAL (uniform0 | uniform) #-}
 
--- | Specialised version of first to finish for timeoutl
+
+-- | Specialised version of first to finish for timeout
 class (DeltaQ𝛩 icdf) => DeltaQTimeout icdf where
   -- | Ensure progress at no later than the specified timeout. This can
   --   _increase_ `tangibleMass` as it will be `always` for times greater than
