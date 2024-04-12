@@ -8,7 +8,7 @@ module DeltaQ.Model.Introspection
 where
 
 import Data.Maybe (isNothing)
-import DeltaQ.Model.DeltaQ ( ProbabilityMass (..)
+import DeltaQ.Model.DeltaQ ( Probability (..)
                            , DeltaQ (..))
 
 -- | The slack \/ hazard - the difference between the point in time \/
@@ -37,13 +37,13 @@ class (DeltaQ icdf) => DeltaQIntrospection icdf where
   probTimedout icdf to = complement $ cumulativeMass icdf to
 
   pointSlackHazard icdf (t,p)
-    | dp >= 0      = Slack  dt (fromMassModel dp)
+    | dp >= 0      = Slack  dt (fromNumericType dp)
     -- ^ There must exist a non-negative time difference.
-    | isNothing t' = Hazard Nothing (fromMassModel $ negate dp)
+    | isNothing t' = Hazard Nothing (fromNumericType $ negate dp)
     -- ^ There is no upper bound on the time.
-    | otherwise    = Hazard (Just $ negate dt) (fromMassModel $ negate dp)
+    | otherwise    = Hazard (Just $ negate dt) (fromNumericType $ negate dp)
     where
-      dp = toMassModel p' - toMassModel p
+      dp = toNumericType p' - toNumericType p
       dt =  t - (maybe err id t')
 
       t' = centile icdf p

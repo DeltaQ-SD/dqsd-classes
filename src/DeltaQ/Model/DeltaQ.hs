@@ -13,9 +13,9 @@ Maintainer  : neil.davies@pnsol.com
 
 module DeltaQ.Model.DeltaQ
   (
-    -- * Improper random distribution
-    -- ** ProbabilityMass
-    ProbabilityMass (..)
+    -- * Improper probabilty distributions
+    -- ** Probability
+    Probability (..)
     -- ** ∆Q
   , DeltaQ (..)
     -- * `DeltaQ` operations
@@ -32,32 +32,45 @@ module DeltaQ.Model.DeltaQ
   )
 where
 
--- | Probability mass. This is a value that can range over the unit interval,
---   [0,1].
+{-| A type @a@ can be an instance of the 'Probability' class
+if it represents the unit interval.
 
-class ( Fractional (ProbMassModel a)
-      , Ord (ProbMassModel a)
+For reasons of accuracy or speed, we want to allow different
+implementations based on different numeric types, say,
+'Double' or 'Rational'. The type family 'NumericType'
+records this underlying numeric type.
+-}
+class ( Fractional (NumericType p)
+      , Ord (NumericType p)
       )
-      => ProbabilityMass a where
-  type  ProbMassModel a
-  never         :: a
-  -- ^ No possibility, 0% probability mass
-  always        :: a
-  -- ^ Certainty, 100% probability mass
-  complement    :: a -> a
-  -- ^ difference from always
-  toMassModel   :: a -> ProbMassModel a
-  -- ^ projection to underlying probability mass model
-  fromMassModel :: ProbMassModel a -> a
-  -- ^ projection from underlying probability mass model
+      => Probability p where
+  type  NumericType p
+  never         :: p
+  -- ^ No possibility, 0% probability.
+  always        :: p
+  -- ^ Certainty, 100% probability.
+  complement    :: p -> p
+  -- ^ Difference from always.
+  --
+  -- We expect that the properties
+  --
+  -- prop> complement . complement = id
+  -- prop> complement never = always
+  --
+  -- hold up to rounding errors.
+  toNumericType   :: p -> NumericType p
+  -- ^ Projection to the underlying numeric type.
+  fromNumericType :: NumericType p -> p
+  -- ^ Projection from the underlying numeric type.
+  -- Values outside the range [0,1] will be mapped to @0@ or @1@,
+  -- whichever is closer.
 
-  never        = fromMassModel 0
-  always       = fromMassModel 1
---  complement a = fromMassModel (toMassModel always - toMassModel a)
+  never        = fromNumericType 0
+  always       = fromNumericType 1
 
 -- | ∆Q - a relationship between timeliness and probability that admits the
 --   notion of non-occurrence.
-class ( ProbabilityMass (ProbMass icdf)
+class ( Probability (ProbMass icdf)
       , Num (Time icdf) 
       ) => DeltaQ icdf where
   type ProbMass icdf
@@ -127,7 +140,7 @@ class (DeltaQ icdf) => DeltaQOps icdf where
   choice :: ProbMass icdf -> icdf -> icdf -> icdf
 
   -- | Given a weighted sequence derive the weighted sum
-  nWayChoice :: [(ProbMassModel (ProbMass icdf), icdf)] -> icdf
+  nWayChoice :: [(NumericType (ProbMass icdf), icdf)] -> icdf
 
   -- | Sequential composition of two expressions
   convolve :: icdf -> icdf -> icdf
@@ -157,13 +170,13 @@ class (DeltaQ icdf) => DeltaQOps icdf where
 
   choice p a b = nWayChoice [(pl, a), (pr, b)]
     where
-      pl = toMassModel p
+      pl = toNumericType p
       pr = 1 - pl
 
   nWayChoice [] = bottom
   nWayChoice [(_,a)] = a
   nWayChoice ((w_x,dq_x):xs) =
-    choice (fromMassModel $ w_x / (w_x + sumW xs)) dq_x (nWayChoice xs)
+    choice (fromNumericType $ w_x / (w_x + sumW xs)) dq_x (nWayChoice xs)
     where
      sumW = sum . map fst
 
