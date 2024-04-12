@@ -4,16 +4,18 @@ module DeltaQ.Model.Utilities
 where
 
 import DeltaQ.Model.DeltaQ
+    ( DeltaQ (..)
+    )
 
 class (DeltaQ irv) => DeltaQVisualisation irv where
   -- | Return a sequence of Time and Probability Mass points of a given length
   --   over the support of the ΔQ. The sequence is monotonitically increasing in
   --   both Time and Probablity Mass.
-  asDiscreteCDF :: irv -> Int -> [(Time irv, ProbMass irv)]
+  asDiscreteCDF :: irv -> Int -> [(Time irv, Prob irv)]
   -- | Return a sequence of (Left) Impulse Probablity mass (equivalent to the
   --   integral of the Heaviside function at that point) or (Right) a sequence
   --   of Time and Probability Density. The sequence is monotonitcally increasing in Time.
-  asDiscretePDF :: irv -> Int -> [Either (Time irv, ProbMass irv) [(Time irv, ProbMass irv)]]
+  asDiscretePDF :: irv -> Int -> [Either (Time irv, Prob irv) [(Time irv, Prob irv)]]
 
 {-
 class (DeltaQ icdf) => DeltaQSupport icdf where

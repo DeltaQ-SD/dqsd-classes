@@ -68,39 +68,56 @@ class ( Fractional (NumericType p)
   never        = fromNumericType 0
   always       = fromNumericType 1
 
--- | ∆Q - a relationship between timeliness and probability that admits the
---   notion of non-occurrence.
-class ( Probability (ProbMass icdf)
+{-| A 'DeltaQ' is an improper probability distribution of time values.
+Here, \"improper\" means that there may be a non-zero probability
+of no value occuring.
+
+Put differently, an instance 'icdf' of the class 'DeltaQ' represents
+a (proper) probability distribution on values of type @'Maybe' ('Time' icdf)@.
+When sampling from this probability distribution,
+we say that drawing a value of the form @'Just' t@ is a __success__,
+while drawing a value of the form 'Nothing' is a __failure__.
+
+For reasons of accuracy or speed, we want to allow different
+implementations on different numeric types, say,
+'Double' or 'Rational'.
+The type family 'Prob' records the type of 'Probability' used,
+and the type family 'Time' records the type of time values used.
+-}
+class ( Probability (Prob icdf)
       , Num (Time icdf) 
       ) => DeltaQ icdf where
-  type ProbMass icdf
-  type Time     icdf
+  type Prob icdf
+  type Time icdf
 
-  -- | Perfection - instantaneous 100% __success__.
+  -- | Perfection — the time value @0@ occurs with 100% probability.
   perfection :: icdf
-  -- | Bottom - never occurs, 100% __failure__.
+  -- | Bottom — with 100% probability, sampling from this distribution
+  -- will result in failure.
   bottom :: icdf
-  -- | cumulative probability mass - the probability that /success/ will have
-  --   occurred at or before the given time.
-  cumulativeMass :: icdf -> Time icdf -> ProbMass icdf
+  -- | Cumulative probiablity mass
+  -- — @cumulativeMass d t@ is the probability that a sample from
+  -- this distribution is a /success/ whose time value is before or equal
+  -- to the given time @t@.
+  cumulativeMass :: icdf -> Time icdf -> Prob icdf
   -- | As above, but only defined over the support.
-  cumulativeMass' :: icdf -> Time icdf -> Maybe (ProbMass icdf)
+  cumulativeMass' :: icdf -> Time icdf -> Maybe (Prob icdf)
   -- | The support. The values of time before (and after) which the cumulative
   --   distribution does not change. The upper bound is present if the support
   --   has a finite upper bound.
   support :: icdf -> (Time icdf, Maybe (Time icdf))
   -- | The limit of the cumulative probability at and beyond the upper bound of
   --   support.
-  tangibleMass :: icdf -> ProbMass icdf
+  tangibleMass :: icdf -> Prob icdf
   -- | The time at which the request probability mass has accumulated.
-  centile :: icdf -> ProbMass icdf -> Maybe (Time icdf)
+  centile :: icdf -> Prob icdf -> Maybe (Time icdf)
 
-  centiles :: icdf -> [ProbMass icdf] -> [Maybe (Time icdf)]
+  centiles :: icdf -> [Prob icdf] -> [Maybe (Time icdf)]
 
   {-# MINIMAL perfection, bottom, (cumulativeMass | cumulativeMass'), support,  tangibleMass, (centile | centiles) #-}
 
   default cumulativeMass :: Ord (Time icdf)
-                         => icdf -> Time icdf -> ProbMass icdf
+                         => icdf -> Time icdf -> Prob icdf
   cumulativeMass icdf t
     | t < l                 = never
     | maybe False (t >) u   = tangibleMass icdf
@@ -110,7 +127,7 @@ class ( Probability (ProbMass icdf)
       err1  = error "cumulativeMass: DeltaQ model error - not defined over support"
 
   default cumulativeMass' :: Ord (Time icdf)
-                          => icdf -> Time icdf -> Maybe (ProbMass icdf)
+                          => icdf -> Time icdf -> Maybe (Prob icdf)
 
   cumulativeMass' icdf t
     | t < l                 = Just $ never
@@ -137,10 +154,10 @@ class (DeltaQ icdf) => DeltaQOps icdf where
   normalise :: icdf -> icdf
 
   -- | Left biased probabilistic choice.
-  choice :: ProbMass icdf -> icdf -> icdf -> icdf
+  choice :: Prob icdf -> icdf -> icdf -> icdf
 
   -- | Given a weighted sequence derive the weighted sum
-  nWayChoice :: [(NumericType (ProbMass icdf), icdf)] -> icdf
+  nWayChoice :: [(NumericType (Prob icdf), icdf)] -> icdf
 
   -- | Sequential composition of two expressions
   convolve :: icdf -> icdf -> icdf
