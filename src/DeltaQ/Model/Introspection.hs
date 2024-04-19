@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE TypeFamilies      #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module DeltaQ.Model.Introspection
   ( DeltaQIntrospection (..)
@@ -21,6 +22,10 @@ data (DeltaQ irv) => Slazard irv
   | Hazard (Maybe (Time irv)) (ProbMass irv)
   -- ^ the __hazard__. Expressed in terms of probability mass and, if waiting
   --   would have worked, time.
+
+instance (DeltaQ irv, Show (Time irv), Show (ProbMass irv)) => Show (Slazard irv) where
+  show (Slack t p) = "Slack ( " ++ show t ++ ", " ++ show p ++ " )"
+  show (Hazard t' p) = "Hazard ( " ++ maybe "NEVER" show t' ++ ", " ++ show p ++ " )"
 
 -- | Ability to extract internal detail of aspects of the expressions.
 class (DeltaQ irv) => DeltaQIntrospection irv where
