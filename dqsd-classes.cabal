@@ -20,7 +20,7 @@ name:               dqsd-classes
 -- PVP summary:     +-+------- breaking API changes
 --                  | | +----- non-breaking API additions
 --                  | | | +--- code changes with no API change
-version:            0.2.0.0
+version:            0.2.1.0
 
 -- A short (one-line) description of the package.
 -- synopsis:
@@ -70,6 +70,7 @@ library
 
     -- Other library packages from which modules are imported.
     build-depends:    base
+                    , Chart
 
     -- Directories containing source files.
     hs-source-dirs:   src

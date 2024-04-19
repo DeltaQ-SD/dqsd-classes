@@ -31,6 +31,8 @@ class (DeltaQ icdf) => DeltaQIntrospection icdf where
   pointSlackHazard :: icdf
                    -> (Time icdf, ProbMass icdf)
                    -> Slazard icdf
+  -- | Given two DeltaQ return the partial ordering between them
+  partialOrdering :: icdf -> icdf -> Maybe Ordering
 
 -- here? Things that might inform a scheduler, for example
 
