@@ -1,5 +1,13 @@
 {-# LANGUAGE FlexibleContexts      #-}
 module DeltaQ.Model.Utilities
+  ( DeltaQVisualisation(..)
+  , plotCDF
+  , plotCDFs
+  , plotCDFWithCentiles
+  , plotInverseCDF
+  , plotPDF
+  , plotPDFs
+  )
 where
 
 import DeltaQ.Model.DeltaQ
