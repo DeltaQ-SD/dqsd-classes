@@ -57,7 +57,17 @@ plotCDFs :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
          -> [(String, irv)]
          -> Layout (Time irv) (ProbMass irv)
 
-plotCDFs = error "plotCDFs: TBW"
+plotCDFs title irvs = execEC $ do
+  layout_title .=  title
+  layout_x_axis . laxis_title .= "Time"
+  layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) maxSupport
+  layout_y_axis . laxis_title .= "Prob. Mass"
+  mapM plotOne irvs
+  where
+   maxSupport = maximum $ map (snd . support . snd) irvs
+   plotOne (t, irv)
+     = plot $ line t [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
+   factor = 1.1 sadfasdf
 
 plotCDFWithCentiles :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
                        , RealFloat (Time irv), Show (Time irv)
