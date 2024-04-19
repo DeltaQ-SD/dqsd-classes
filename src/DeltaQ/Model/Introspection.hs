@@ -24,8 +24,8 @@ data (DeltaQ irv) => Slazard irv
   --   would have worked, time.
 
 instance (DeltaQ irv, Show (Time irv), Show (ProbMass irv)) => Show (Slazard irv) where
-  show (Slack t p) = "Slack ( " ++ show t ++ ", " ++ show p ++ " )"
-  show (Hazard t' p) = "Hazard ( " ++ maybe "NEVER" show t' ++ ", " ++ show p ++ " )"
+  show (Slack t p) = "Slack (" ++ show t ++ ", " ++ show p ++ ")"
+  show (Hazard t' p) = "Hazard (" ++ maybe "NEVER" show t' ++ ", " ++ show p ++ ")"
 
 -- | Ability to extract internal detail of aspects of the expressions.
 class (DeltaQ irv) => DeltaQIntrospection irv where
