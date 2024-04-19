@@ -62,12 +62,12 @@ plotCDFs title irvs = execEC $ do
   layout_x_axis . laxis_title .= "Time"
   layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) maxSupport
   layout_y_axis . laxis_title .= "Prob. Mass"
-  mapM plotOne irvs
+  mapM_ plotOne irvs
   where
    maxSupport = maximum $ map (snd . support . snd) irvs
    plotOne (t, irv)
      = plot $ line t [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
-   factor = 1.1 sadfasdf
+   factor = 1.1
 
 plotCDFWithCentiles :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
                        , RealFloat (Time irv), Show (Time irv)
@@ -120,4 +120,14 @@ plotPDFs :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
          => String
          -> [(String, irv)]
          -> Layout (Time irv) (ProbMass irv)
-plotPDFs = error "plotPDFs: TBW"
+plotPDFs title irvs = execEC $ do
+  layout_title .=  title
+  layout_x_axis . laxis_title .= "Time"
+  layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) maxSupport
+  layout_y_axis . laxis_title .= "Prob. Density"
+  mapM_ plotOne irvs
+  where
+   maxSupport = maximum $ map (snd . support . snd) irvs
+   factor = 1.1
+   plotOne (t, irv)
+     = plot $ line t $ map (either (\(t',p) -> [(t',never), (t', p)]) id) $ asDiscretePDF irv 1000
