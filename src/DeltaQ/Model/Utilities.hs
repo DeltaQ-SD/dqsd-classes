@@ -1,5 +1,4 @@
-{-# LANGUAGE TypeFamilies      #-}
-
+{-# LANGUAGE FlexibleContexts      #-}
 module DeltaQ.Model.Utilities
 where
 

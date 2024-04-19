@@ -15,30 +15,30 @@ import DeltaQ.Model.DeltaQ ( ProbabilityMass (..)
 --  probability mass space and the given `DeltaQ`. `Slack` represents the
 --  reference point being achieved; `Hazard` represents the point not being
 --  achieved a measure of the degree of it being missed.
-data (DeltaQ icdf) => Slazard icdf
-  = Slack (Time icdf) (ProbMass icdf)
+data (DeltaQ irv) => Slazard irv
+  = Slack (Time irv) (ProbMass irv)
   -- ^ the __slack__. Expressed in terms of both time and probability mass
-  | Hazard (Maybe (Time icdf)) (ProbMass icdf)
+  | Hazard (Maybe (Time irv)) (ProbMass irv)
   -- ^ the __hazard__. Expressed in terms of probability mass and, if waiting
   --   would have worked, time.
 
 -- | Ability to extract internal detail of aspects of the expressions.
-class (DeltaQ icdf) => DeltaQIntrospection icdf where
+class (DeltaQ irv) => DeltaQIntrospection irv where
   -- | Extract the probability that the timeout would occur.
-  probTimedout :: icdf -> Time icdf -> ProbMass icdf
+  probTimedout :: irv -> Time irv -> ProbMass irv
   -- | Extract the /slack/ (or /hazard/) for a single (time, probability) point
   --   - the degenerative QTA (Quantitative Timeliness Agreement)
-  pointSlackHazard :: icdf
-                   -> (Time icdf, ProbMass icdf)
-                   -> Slazard icdf
+  pointSlackHazard :: irv
+                   -> (Time irv, ProbMass irv)
+                   -> Slazard irv
   -- | Given two DeltaQ return the partial ordering between them
-  partialOrdering :: icdf -> icdf -> Maybe Ordering
+  partialOrdering :: irv -> irv -> Maybe Ordering
 
 -- here? Things that might inform a scheduler, for example
 
-  probTimedout icdf to = complement $ cumulativeMass icdf to
+  probTimedout irv to = complement $ cumulativeMass irv to
 
-  pointSlackHazard icdf (t,p)
+  pointSlackHazard irv (t,p)
     | dp >= 0      = Slack  dt (fromMassModel dp)
     -- ^ There must exist a non-negative time difference.
     | isNothing t' = Hazard Nothing (fromMassModel $ negate dp)
@@ -48,7 +48,7 @@ class (DeltaQ icdf) => DeltaQIntrospection icdf where
       dp = toMassModel p' - toMassModel p
       dt =  t - (maybe err id t')
 
-      t' = centile icdf p
-      p' = cumulativeMass icdf t
+      t' = centile irv p
+      p' = cumulativeMass irv t
 
       err = error "pointSlackHazard: inconsistency"
