@@ -77,7 +77,25 @@ plotCDFWithCentiles :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
                     -> [ProbMass irv]
                     -> Layout (Time irv) (ProbMass irv)
 
-plotCDFWithCentiles = error "plotCDFWithCentiles: TBW"
+plotCDFWithCentiles title irv cs = execEC $ do
+  layout_title .=  title
+  layout_x_axis . laxis_title .= "Time"
+  layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) u
+  layout_y_axis . laxis_title .= "Prob. Mass"
+  plot $ line "" [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) u]
+  mapM_ plotCentile cs
+  where
+   factor = 1.1
+   (_,u) = support irv
+   plotCentile x = case centile irv x of
+     Nothing -> return ()
+     Just y  -> plot $ liftEC $ do
+       plot_lines_style . line_color .= opaque black
+       plot_lines_style . line_dashes .= [5,5]
+       plot_lines_limit_values .=
+         [ [(LMin, LValue x),(LValue y, LValue x)]
+         , [(LValue y, LValue x), (LValue y, LMin)]
+         ]
 
 plotInverseCDF :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
                   , RealFloat (Time irv), Show (Time irv)
