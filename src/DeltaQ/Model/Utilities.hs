@@ -67,8 +67,9 @@ plotCDFs title irvs = execEC $ do
   mapM_ plotOne irvs
   where
    maxSupport = maximum $ map (snd . support . snd) irvs
-   plotOne (t, _irv)
-     = plot $ line t undefined -- [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
+   plotOne (t, irv)
+     = plot $ line t [cdf irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
+   cdf a b = concatMap (either (:[]) id) $ asDiscreteCDF a b
    factor = 1.1
 
 plotCDFWithCentiles :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
