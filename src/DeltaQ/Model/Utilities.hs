@@ -18,9 +18,10 @@ import Data.Bifunctor (second)
 
 class (DeltaQ irv) => DeltaQVisualisation irv where
   -- | Return a sequence of Time and Probability Mass points of a given length
-  --   over the support of the ΔQ. The sequence is monotonitically increasing in
+  --   over the support of the ΔQ. The lower edge of a Heaviside is represented
+  --   through the use of `Left`. The sequence is monotonitically increasing in
   --   both Time and Probablity Mass.
-  asDiscreteCDF :: irv -> Int -> [(Time irv, ProbMass irv)]
+  asDiscreteCDF :: irv -> Int -> [Either (Time irv, ProbMass irv) [(Time irv, ProbMass irv)]]
   -- | Return a sequence of (Left) Impulse Probablity mass (equivalent to the
   --   integral of the Heaviside function at that point) or (Right) a sequence
   --   of Time and Probability Density. The sequence is monotonitcally increasing in Time.
@@ -45,8 +46,9 @@ plotCDF title irv = execEC $ do
   layout_x_axis . laxis_title .= "Time"
   layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) u
   layout_y_axis . laxis_title .= "Prob. Mass"
-  plot $ line "" [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) u]
+  plot $ line "" [cdf ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) u]
   where
+   cdf = concatMap (either (:[]) id) $  asDiscreteCDF irv 1000
    factor = 1.1
    (_,u) = support irv
 
@@ -65,8 +67,8 @@ plotCDFs title irvs = execEC $ do
   mapM_ plotOne irvs
   where
    maxSupport = maximum $ map (snd . support . snd) irvs
-   plotOne (t, irv)
-     = plot $ line t [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
+   plotOne (t, _irv)
+     = plot $ line t undefined -- [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) (snd $ support irv)]
    factor = 1.1
 
 plotCDFWithCentiles :: ( PlotValue (ProbMass irv), PlotValue (Time irv)
@@ -82,9 +84,10 @@ plotCDFWithCentiles title irv cs = execEC $ do
   layout_x_axis . laxis_title .= "Time"
   layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) u
   layout_y_axis . laxis_title .= "Prob. Mass"
-  plot $ line "" [asDiscreteCDF irv 1000 ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) u]
+  plot $ line "" [cdf ++ maybe [] (\u' -> [(2 * factor * u', tangibleMass irv)]) u]
   mapM_ plotCentile cs
   where
+   cdf = concatMap (either (:[]) id) $  asDiscreteCDF irv 1000
    factor = 1.1
    (_,u) = support irv
    plotCentile x = case centile irv x of
@@ -109,9 +112,10 @@ plotInverseCDF title irv = execEC $ do
   layout_x_axis . laxis_title .= "Time"
   layout_x_axis . laxis_generate .= maybe autoAxis (\u' -> scaledAxis def (0, factor * u')) u
   layout_y_axis . laxis_title .= "Log Inv. Prob. Mass"
-  plot $ line "" [map (second cv) (asDiscreteCDF irv 1000)
-         ++ maybe [] (\u' -> [(2 * factor * u', cv $ tangibleMass irv)]) u]
+  plot $ line "" [map (second cv) cdf
+                  ++ maybe [] (\u' -> [(2 * factor * u', cv $ tangibleMass irv)]) u]
   where
+   cdf = concatMap (either (:[]) id) $  asDiscreteCDF irv 1000
    factor = 1.1
    (_,u) = support irv
    cv = fromRational . toRational . complement
